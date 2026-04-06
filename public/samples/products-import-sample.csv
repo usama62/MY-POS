@@ -1,0 +1,11 @@
+name,sku,price,stock,category,is_active
+Sugar 1kg,SKU-SUG-001,120.00,50,Grocery,1
+Cooking Oil 1L,SKU-OIL-001,450.00,30,Grocery,1
+Rice 5kg,SKU-RIC-001,850.00,25,Grocery,1
+Tea 250g,SKU-TEA-001,320.00,40,Beverages,1
+Milk 1L,SKU-MLK-001,180.00,60,Dairy,1
+Bread Loaf,SKU-BRD-001,95.00,20,Bakery,1
+Bottled Water 1.5L,SKU-WTR-001,60.00,100,Beverages,1
+Soap Bar,SKU-SOP-001,75.00,45,Personal Care,1
+Notebook A4,SKU-NBK-001,150.00,15,Stationery,1
+Pen Pack (10),SKU-PEN-001,200.00,35,Stationery,0
