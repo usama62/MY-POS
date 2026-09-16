@@ -9,29 +9,48 @@ use Illuminate\Validation\Rule;
 
 class ProductController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $products = Product::query()->latest()->paginate(15);
+        $search = trim((string) $request->query('q', ''));
 
-        return view('products.index', compact('products'));
+        $products = Product::query()
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                        ->orWhere('sku', 'like', "%{$search}%")
+                        ->orWhere('category', 'like', "%{$search}%");
+                });
+            })
+            ->orderBy('name')
+            ->paginate(50)
+            ->withQueryString();
+
+        return view('products.index', compact('products', 'search'));
     }
 
     public function create()
     {
-        return view('products.create');
+        $categories = Product::categoryOptions();
+
+        return view('products.create', compact('categories'));
     }
 
     public function store(Request $request)
     {
+        $request->merge([
+            'sku' => trim((string) $request->input('sku', '')) ?: null,
+        ]);
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'sku' => ['required', 'string', 'max:100', 'unique:products,sku'],
+            'sku' => ['nullable', 'string', 'max:100', 'unique:products,sku'],
             'price' => ['required', 'numeric', 'min:0'],
             'stock' => ['required', 'integer', 'min:0'],
             'category' => ['nullable', 'string', 'max:255'],
             'is_active' => ['nullable', 'boolean'],
         ]);
 
+        $validated['sku'] = $validated['sku'] ?? Product::generateUniqueSku();
         $validated['is_active'] = $request->boolean('is_active');
         Product::create($validated);
 
@@ -45,20 +64,27 @@ class ProductController extends Controller
 
     public function edit(Product $product)
     {
-        return view('products.edit', compact('product'));
+        $categories = Product::categoryOptions();
+
+        return view('products.edit', compact('product', 'categories'));
     }
 
     public function update(Request $request, Product $product)
     {
+        $request->merge([
+            'sku' => trim((string) $request->input('sku', '')) ?: null,
+        ]);
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'sku' => ['required', 'string', 'max:100', Rule::unique('products', 'sku')->ignore($product->id)],
+            'sku' => ['nullable', 'string', 'max:100', Rule::unique('products', 'sku')->ignore($product->id)],
             'price' => ['required', 'numeric', 'min:0'],
             'stock' => ['required', 'integer', 'min:0'],
             'category' => ['nullable', 'string', 'max:255'],
             'is_active' => ['nullable', 'boolean'],
         ]);
 
+        $validated['sku'] = $validated['sku'] ?? $product->sku ?? Product::generateUniqueSku();
         $validated['is_active'] = $request->boolean('is_active');
         $product->update($validated);
 
@@ -91,20 +117,33 @@ class ProductController extends Controller
             while (($row = fgetcsv($handle)) !== false) {
                 $data = $this->normalizeCsvRow($header, $row);
 
-                if (empty($data['name']) || empty($data['sku'])) {
+                if (empty($data['name'])) {
                     continue;
                 }
 
-                Product::updateOrCreate(
-                    ['sku' => $data['sku']],
-                    [
+                $sku = trim((string) ($data['sku'] ?? ''));
+                if ($sku === '') {
+                    $sku = Product::generateUniqueSku();
+                    Product::create([
+                        'sku' => $sku,
                         'name' => $data['name'],
                         'price' => (float) ($data['price'] ?? 0),
                         'stock' => (int) ($data['stock'] ?? 0),
                         'category' => $data['category'] ?? null,
                         'is_active' => filter_var($data['is_active'] ?? true, FILTER_VALIDATE_BOOLEAN),
-                    ]
-                );
+                    ]);
+                } else {
+                    Product::updateOrCreate(
+                        ['sku' => $sku],
+                        [
+                            'name' => $data['name'],
+                            'price' => (float) ($data['price'] ?? 0),
+                            'stock' => (int) ($data['stock'] ?? 0),
+                            'category' => $data['category'] ?? null,
+                            'is_active' => filter_var($data['is_active'] ?? true, FILTER_VALIDATE_BOOLEAN),
+                        ]
+                    );
+                }
 
                 $imported++;
             }

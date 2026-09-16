@@ -9,8 +9,8 @@
     </div>
     <div class="col-md-6">
         <div class="form-group">
-            <label>SKU</label>
-            <input type="text" name="sku" value="{{ old('sku', $product->sku ?? '') }}" class="form-control @error('sku') is-invalid @enderror" required maxlength="100">
+            <label>SKU <small class="text-muted">({{ __('pos.sku_optional') }})</small></label>
+            <input type="text" name="sku" value="{{ old('sku', $product->sku ?? '') }}" class="form-control @error('sku') is-invalid @enderror" maxlength="100" placeholder="{{ __('pos.sku_auto_placeholder') }}">
             @error('sku')<span class="invalid-feedback d-block">{{ $message }}</span>@enderror
         </div>
     </div>
@@ -31,7 +31,15 @@
     <div class="col-md-6">
         <div class="form-group">
             <label>{{ __('pos.category') }}</label>
-            <input type="text" name="category" value="{{ old('category', $product->category ?? '') }}" class="form-control">
+            <select name="category" class="form-control @error('category') is-invalid @enderror">
+                <option value="">{{ __('pos.select_category') }}</option>
+                @foreach(($categories ?? []) as $categoryOption)
+                    <option value="{{ $categoryOption }}" @selected(old('category', $product->category ?? '') === $categoryOption)>
+                        {{ $categoryOption }}
+                    </option>
+                @endforeach
+            </select>
+            @error('category')<span class="invalid-feedback d-block">{{ $message }}</span>@enderror
         </div>
     </div>
     <div class="col-md-6">

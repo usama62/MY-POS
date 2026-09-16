@@ -31,15 +31,20 @@ class ProductApiController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        $request->merge([
+            'sku' => trim((string) $request->input('sku', '')) ?: null,
+        ]);
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'sku' => ['required', 'string', 'max:100', 'unique:products,sku'],
+            'sku' => ['nullable', 'string', 'max:100', 'unique:products,sku'],
             'price' => ['required', 'numeric', 'min:0'],
             'stock' => ['required', 'integer', 'min:0'],
             'category' => ['nullable', 'string', 'max:255'],
             'is_active' => ['nullable', 'boolean'],
         ]);
 
+        $validated['sku'] = $validated['sku'] ?? Product::generateUniqueSku();
         $validated['is_active'] = $request->boolean('is_active', true);
         $product = Product::create($validated);
 
@@ -53,15 +58,20 @@ class ProductApiController extends Controller
 
     public function update(Request $request, Product $product): JsonResponse
     {
+        $request->merge([
+            'sku' => trim((string) $request->input('sku', '')) ?: null,
+        ]);
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'sku' => ['required', 'string', 'max:100', Rule::unique('products', 'sku')->ignore($product->id)],
+            'sku' => ['nullable', 'string', 'max:100', Rule::unique('products', 'sku')->ignore($product->id)],
             'price' => ['required', 'numeric', 'min:0'],
             'stock' => ['required', 'integer', 'min:0'],
             'category' => ['nullable', 'string', 'max:255'],
             'is_active' => ['nullable', 'boolean'],
         ]);
 
+        $validated['sku'] = $validated['sku'] ?? $product->sku ?? Product::generateUniqueSku();
         $validated['is_active'] = $request->boolean('is_active', true);
         $product->update($validated);
 
@@ -94,20 +104,32 @@ class ProductApiController extends Controller
             while (($row = fgetcsv($handle)) !== false) {
                 $data = $this->normalizeCsvRow($header, $row);
 
-                if (empty($data['name']) || empty($data['sku'])) {
+                if (empty($data['name'])) {
                     continue;
                 }
 
-                Product::updateOrCreate(
-                    ['sku' => $data['sku']],
-                    [
+                $sku = trim((string) ($data['sku'] ?? ''));
+                if ($sku === '') {
+                    Product::create([
+                        'sku' => Product::generateUniqueSku(),
                         'name' => $data['name'],
                         'price' => (float) ($data['price'] ?? 0),
                         'stock' => (int) ($data['stock'] ?? 0),
                         'category' => $data['category'] ?? null,
                         'is_active' => filter_var($data['is_active'] ?? true, FILTER_VALIDATE_BOOLEAN),
-                    ]
-                );
+                    ]);
+                } else {
+                    Product::updateOrCreate(
+                        ['sku' => $sku],
+                        [
+                            'name' => $data['name'],
+                            'price' => (float) ($data['price'] ?? 0),
+                            'stock' => (int) ($data['stock'] ?? 0),
+                            'category' => $data['category'] ?? null,
+                            'is_active' => filter_var($data['is_active'] ?? true, FILTER_VALIDATE_BOOLEAN),
+                        ]
+                    );
+                }
 
                 $imported++;
             }
