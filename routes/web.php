@@ -17,6 +17,7 @@ Route::post('/products/import', [ProductController::class, 'import'])->name('pro
 
 Route::get('/sales', [SaleController::class, 'index'])->name('sales.index');
 Route::get('/sales/create', [SaleController::class, 'create'])->name('sales.create');
+Route::get('/sales/export', [SaleController::class, 'export'])->name('sales.export');
 Route::post('/sales', [SaleController::class, 'store'])->name('sales.store');
 Route::get('/sales/{sale}', [SaleController::class, 'show'])->name('sales.show');
 

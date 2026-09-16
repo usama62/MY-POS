@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Product;
+use App\Models\Sale;
 use App\Models\SaleItem;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Schema;
@@ -13,6 +14,7 @@ class ProductSeeder extends Seeder
     {
         Schema::disableForeignKeyConstraints();
         SaleItem::query()->delete();
+        Sale::query()->delete();
         Product::query()->delete();
         Schema::enableForeignKeyConstraints();
 

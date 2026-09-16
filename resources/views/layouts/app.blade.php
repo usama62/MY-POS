@@ -25,19 +25,6 @@
                 <a class="nav-link" data-widget="pushmenu" href="#"><i class="fas fa-bars"></i></a>
             </li>
         </ul>
-        <ul class="navbar-nav ml-auto">
-            <li class="nav-item">
-                <form action="{{ route('language.update') }}" method="POST" class="form-inline">
-                    @csrf
-                    <select name="locale" class="form-control form-control-sm mr-2" required>
-                        <option value="en" @selected(app()->getLocale() === 'en')>English</option>
-                        <option value="ar" @selected(app()->getLocale() === 'ar')>العربية</option>
-                        <option value="ur" @selected(app()->getLocale() === 'ur')>اردو</option>
-                    </select>
-                    <button class="btn btn-sm btn-primary">{{ __('pos.change_language') }}</button>
-                </form>
-            </li>
-        </ul>
     </nav>
 
     <aside class="main-sidebar sidebar-dark-primary elevation-4 no-print">
