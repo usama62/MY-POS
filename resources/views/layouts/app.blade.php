@@ -25,21 +25,38 @@
                 <a class="nav-link" data-widget="pushmenu" href="#"><i class="fas fa-bars"></i></a>
             </li>
         </ul>
+        <ul class="navbar-nav ml-auto">
+            <li class="nav-item d-none d-sm-inline-block">
+                <span class="nav-link">{{ auth()->user()?->name }} ({{ auth()->user()?->role }})</span>
+            </li>
+            <li class="nav-item">
+                <form action="{{ route('logout') }}" method="POST" class="form-inline">
+                    @csrf
+                    <button class="btn btn-sm btn-outline-danger mr-2">{{ __('pos.logout') }}</button>
+                </form>
+            </li>
+        </ul>
     </nav>
 
     <aside class="main-sidebar sidebar-dark-primary elevation-4 no-print">
-        <a href="{{ route('dashboard') }}" class="brand-link">
+        <a href="{{ auth()->user()?->isAdmin() ? route('dashboard') : route('sales.create') }}" class="brand-link">
             <span class="brand-text font-weight-light">POS Pro</span>
         </a>
         <div class="sidebar">
             <nav class="mt-2">
                 <ul class="nav nav-pills nav-sidebar flex-column">
-                    <li class="nav-item"><a href="{{ route('dashboard') }}" class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}"><i class="nav-icon fas fa-chart-line"></i><p>{{ __('pos.dashboard') }}</p></a></li>
-                    <li class="nav-item"><a href="{{ route('products.index') }}" class="nav-link {{ request()->routeIs('products.*') ? 'active' : '' }}"><i class="nav-icon fas fa-boxes"></i><p>{{ __('pos.products') }}</p></a></li>
+                    @if(auth()->user()?->isAdmin())
+                        <li class="nav-item"><a href="{{ route('dashboard') }}" class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}"><i class="nav-icon fas fa-chart-line"></i><p>{{ __('pos.dashboard') }}</p></a></li>
+                        <li class="nav-item"><a href="{{ route('products.index') }}" class="nav-link {{ request()->routeIs('products.*') ? 'active' : '' }}"><i class="nav-icon fas fa-boxes"></i><p>{{ __('pos.products') }}</p></a></li>
+                    @endif
+
                     <li class="nav-item"><a href="{{ route('sales.create') }}" class="nav-link {{ request()->routeIs('sales.create') ? 'active' : '' }}"><i class="nav-icon fas fa-cash-register"></i><p>{{ __('pos.new_sale') }}</p></a></li>
-                    <li class="nav-item"><a href="{{ route('sales.index') }}" class="nav-link {{ request()->routeIs('sales.index') || request()->routeIs('sales.show') ? 'active' : '' }}"><i class="nav-icon fas fa-receipt"></i><p>{{ __('pos.sales') }}</p></a></li>
-                    <li class="nav-item"><a href="{{ route('zakat.index') }}" class="nav-link {{ request()->routeIs('zakat.*') ? 'active' : '' }}"><i class="nav-icon fas fa-percentage"></i><p>{{ __('pos.zakat') }}</p></a></li>
-                    <li class="nav-item"><a href="{{ route('settings.company.edit') }}" class="nav-link {{ request()->routeIs('settings.company.*') ? 'active' : '' }}"><i class="nav-icon fas fa-building"></i><p>{{ __('pos.company_profile') }}</p></a></li>
+
+                    @if(auth()->user()?->isAdmin())
+                        <li class="nav-item"><a href="{{ route('sales.index') }}" class="nav-link {{ request()->routeIs('sales.index') || request()->routeIs('sales.show') ? 'active' : '' }}"><i class="nav-icon fas fa-receipt"></i><p>{{ __('pos.sales') }}</p></a></li>
+                        <li class="nav-item"><a href="{{ route('purchase-orders.index') }}" class="nav-link {{ request()->routeIs('purchase-orders.*') ? 'active' : '' }}"><i class="nav-icon fas fa-truck-loading"></i><p>{{ __('pos.purchase_orders') }}</p></a></li>
+                        <li class="nav-item"><a href="{{ route('settings.company.edit') }}" class="nav-link {{ request()->routeIs('settings.company.*') ? 'active' : '' }}"><i class="nav-icon fas fa-building"></i><p>{{ __('pos.company_profile') }}</p></a></li>
+                    @endif
                 </ul>
             </nav>
         </div>

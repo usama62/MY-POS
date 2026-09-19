@@ -32,6 +32,7 @@ class SaleSeeder extends Seeder
         $customers = $this->ensureCustomers();
 
         Schema::disableForeignKeyConstraints();
+        DB::table('sale_item_batches')->delete();
         SaleItem::query()->delete();
         Sale::query()->delete();
         Schema::enableForeignKeyConstraints();
@@ -137,7 +138,11 @@ class SaleSeeder extends Seeder
                     $itemsBuffer[] = [
                         'sale_id' => $saleId,
                         'product_id' => $line['product_id'],
+                        'product_uom_id' => null,
+                        'uom_name' => 'Unit',
+                        'uom_factor' => 1,
                         'quantity' => $line['quantity'],
+                        'base_quantity' => $line['quantity'],
                         'unit_price' => $line['unit_price'],
                         'line_total' => $line['line_total'],
                         'created_at' => $now,

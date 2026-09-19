@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
+use App\Models\ProductBatch;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -46,25 +47,53 @@ class ProductController extends Controller
             'sku' => ['nullable', 'string', 'max:100', 'unique:products,sku'],
             'price' => ['required', 'numeric', 'min:0'],
             'stock' => ['required', 'integer', 'min:0'],
+            'min_stock' => ['nullable', 'integer', 'min:0'],
+            'max_stock' => ['nullable', 'integer', 'min:0'],
+            'reorder_enabled' => ['nullable', 'boolean'],
             'category' => ['nullable', 'string', 'max:255'],
             'is_active' => ['nullable', 'boolean'],
         ]);
 
+        if (isset($validated['max_stock'], $validated['min_stock']) && $validated['max_stock'] < $validated['min_stock']) {
+            $validated['max_stock'] = $validated['min_stock'];
+        }
+
         $validated['sku'] = $validated['sku'] ?? Product::generateUniqueSku();
         $validated['is_active'] = $request->boolean('is_active');
-        Product::create($validated);
+        $validated['reorder_enabled'] = $request->boolean('reorder_enabled', true);
+        $validated['min_stock'] = (int) ($validated['min_stock'] ?? 10);
+        $validated['max_stock'] = (int) ($validated['max_stock'] ?? max(100, $validated['min_stock']));
+        $product = Product::create($validated);
+
+        if ((int) $product->stock > 0) {
+            $product->batches()->create([
+                'batch_no' => 'B'.$product->sku.'-01',
+                'expiry_date' => now()->addYear()->toDateString(),
+                'quantity' => (int) $product->stock,
+                'received_at' => now(),
+            ]);
+        }
+
+        $product->ensureDefaultUoms();
 
         return redirect()->route('products.index')->with('status', __('pos.product_created'));
     }
 
     public function show(Product $product)
     {
+        $product->load(['batches' => fn ($q) => $q->orderBy('expiry_date')->orderBy('id')]);
+
         return view('products.show', compact('product'));
     }
 
     public function edit(Product $product)
     {
         $categories = Product::categoryOptions();
+        $product->ensureDefaultUoms();
+        $product->load([
+            'batches' => fn ($q) => $q->orderBy('expiry_date')->orderBy('id'),
+            'uoms',
+        ]);
 
         return view('products.edit', compact('product', 'categories'));
     }
@@ -80,13 +109,25 @@ class ProductController extends Controller
             'sku' => ['nullable', 'string', 'max:100', Rule::unique('products', 'sku')->ignore($product->id)],
             'price' => ['required', 'numeric', 'min:0'],
             'stock' => ['required', 'integer', 'min:0'],
+            'min_stock' => ['nullable', 'integer', 'min:0'],
+            'max_stock' => ['nullable', 'integer', 'min:0'],
+            'reorder_enabled' => ['nullable', 'boolean'],
             'category' => ['nullable', 'string', 'max:255'],
             'is_active' => ['nullable', 'boolean'],
         ]);
 
+        if (isset($validated['max_stock'], $validated['min_stock']) && $validated['max_stock'] < $validated['min_stock']) {
+            $validated['max_stock'] = $validated['min_stock'];
+        }
+
         $validated['sku'] = $validated['sku'] ?? $product->sku ?? Product::generateUniqueSku();
         $validated['is_active'] = $request->boolean('is_active');
+        $validated['reorder_enabled'] = $request->boolean('reorder_enabled');
+        $validated['min_stock'] = (int) ($validated['min_stock'] ?? $product->min_stock ?? 10);
+        $validated['max_stock'] = (int) ($validated['max_stock'] ?? $product->max_stock ?? 100);
         $product->update($validated);
+
+        app(\App\Services\AutoReorderService::class)->syncProduct($product->fresh());
 
         return redirect()->route('products.index')->with('status', __('pos.product_updated'));
     }
@@ -96,6 +137,54 @@ class ProductController extends Controller
         $product->delete();
 
         return redirect()->route('products.index')->with('status', __('pos.product_deleted'));
+    }
+
+    public function storeBatch(Request $request, Product $product)
+    {
+        $validated = $request->validate([
+            'batch_no' => ['required', 'string', 'max:100', Rule::unique('product_batches', 'batch_no')->where('product_id', $product->id)],
+            'expiry_date' => ['required', 'date'],
+            'quantity' => ['required', 'integer', 'min:1'],
+        ]);
+
+        $product->batches()->create([
+            'batch_no' => $validated['batch_no'],
+            'expiry_date' => $validated['expiry_date'],
+            'quantity' => $validated['quantity'],
+            'received_at' => now(),
+        ]);
+
+        $product->syncStockFromBatches();
+
+        return redirect()
+            ->route('products.edit', $product)
+            ->with('status', __('pos.batch_added'));
+    }
+
+    public function storeUom(Request $request, Product $product)
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:50', Rule::unique('product_uoms', 'name')->where('product_id', $product->id)],
+            'factor_to_base' => ['required', 'integer', 'min:1'],
+            'price' => ['nullable', 'numeric', 'min:0'],
+            'is_base' => ['nullable', 'boolean'],
+        ]);
+
+        if ($request->boolean('is_base')) {
+            $product->uoms()->update(['is_base' => false]);
+        }
+
+        $product->uoms()->create([
+            'name' => $validated['name'],
+            'factor_to_base' => $validated['factor_to_base'],
+            'price' => $validated['price'] ?? round((float) $product->price * (int) $validated['factor_to_base'], 2),
+            'is_base' => $request->boolean('is_base'),
+            'sort_order' => ((int) $product->uoms()->max('sort_order')) + 1,
+        ]);
+
+        return redirect()
+            ->route('products.edit', $product)
+            ->with('status', __('pos.uom_added'));
     }
 
     public function import(Request $request)

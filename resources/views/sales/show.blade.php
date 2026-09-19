@@ -69,7 +69,7 @@
     <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
         <h3 class="card-title mb-0">{{ __('pos.sale_receipt') }}: {{ $sale->reference }}</h3>
         <div class="btn-group" role="group">
-            <a href="{{ route('sales.index') }}" class="btn btn-sm btn-secondary"><i class="fas fa-arrow-left"></i> {{ __('pos.back') }}</a>
+            <a href="{{ auth()->user()?->isAdmin() ? route('sales.index') : route('sales.create') }}" class="btn btn-sm btn-secondary"><i class="fas fa-arrow-left"></i> {{ __('pos.back') }}</a>
             <button type="button" onclick="document.body.classList.remove('print-thermal-receipt'); document.body.classList.add('print-a4-invoice'); window.print(); document.body.classList.remove('print-a4-invoice');" class="btn btn-sm btn-primary">
                 <i class="fas fa-file-alt"></i> {{ __('pos.print_a4') }}
             </button>
@@ -101,7 +101,16 @@
     <div class="row invoice-info">
         <div class="col-sm-6 invoice-col">
             <strong>{{ __('pos.customer') }}:</strong> {{ $sale->customer?->name ?? __('pos.walk_in_customer') }}<br>
-            <strong>{{ __('pos.payment_method') }}:</strong> {{ ucfirst(str_replace('_', ' ', $sale->payment_method)) }}
+            <strong>{{ __('pos.payment_method') }}:</strong>
+            {{ ucfirst(str_replace('_', ' ', $sale->payment_method)) }}
+            @if($sale->payments->isNotEmpty())
+                <br>
+                <small class="text-muted">
+                    @foreach($sale->payments as $payment)
+                        {{ ucfirst(str_replace('_', ' ', $payment->method)) }}: {{ number_format($payment->amount, 2) }}@if(!$loop->last), @endif
+                    @endforeach
+                </small>
+            @endif
         </div>
         <div class="col-sm-6 invoice-col text-right">
             <b>{{ __('pos.reference') }}:</b> {{ $sale->reference }}
@@ -115,15 +124,44 @@
                     <th>{{ __('pos.product') }}</th>
                     <th>{{ __('pos.quantity') }}</th>
                     <th>{{ __('pos.price') }}</th>
+                    <th>{{ __('pos.item_discount') }}</th>
                     <th>{{ __('pos.total') }}</th>
                 </tr>
                 </thead>
                 <tbody>
                 @foreach($sale->items as $item)
                     <tr>
-                        <td>{{ $item->product->name }}</td>
-                        <td>{{ $item->quantity }}</td>
+                        <td>
+                            {{ $item->product->name }}
+                            @if($item->uom_name)
+                                <br><small class="text-muted">{{ __('pos.uom') }}: {{ $item->uom_name }}
+                                    @if((int) $item->uom_factor > 1)
+                                        ({{ $item->quantity }} × {{ $item->uom_factor }} = {{ $item->base_quantity ?: ($item->quantity * $item->uom_factor) }} base)
+                                    @endif
+                                </small>
+                            @endif
+                            @if($item->batchAllocations->isNotEmpty())
+                                <br>
+                                <small class="text-muted">
+                                    FEFO:
+                                    @foreach($item->batchAllocations as $alloc)
+                                        {{ $alloc->batch_no }} (exp {{ $alloc->expiry_date->format('Y-m-d') }}) ×{{ $alloc->quantity }}@if(!$loop->last), @endif
+                                    @endforeach
+                                </small>
+                            @endif
+                        </td>
+                        <td>{{ $item->quantity }}{{ $item->uom_name ? ' '.$item->uom_name : '' }}</td>
                         <td>{{ number_format($item->unit_price, 2) }}</td>
+                        <td>
+                            @if((float) $item->discount_amount > 0)
+                                {{ number_format($item->discount_amount, 2) }}
+                                @if((float) $item->discount_percent > 0)
+                                    <small class="text-muted">({{ number_format($item->discount_percent, 2) }}%)</small>
+                                @endif
+                            @else
+                                0.00
+                            @endif
+                        </td>
                         <td>{{ number_format($item->line_total, 2) }}</td>
                     </tr>
                 @endforeach
@@ -136,9 +174,12 @@
         <div class="col-6">
             <table class="table">
                 <tr><th>{{ __('pos.subtotal') }}:</th><td>{{ number_format($sale->subtotal, 2) }}</td></tr>
-                <tr><th>{{ __('pos.discount') }}:</th><td>{{ number_format($sale->discount, 2) }}</td></tr>
+                <tr><th>{{ __('pos.cart_discount') }}:</th><td>{{ number_format($sale->discount, 2) }}</td></tr>
                 <tr><th>{{ __('pos.tax') }}:</th><td>{{ number_format($sale->tax, 2) }}</td></tr>
                 <tr><th>{{ __('pos.total') }}:</th><td>{{ number_format($sale->total, 2) }}</td></tr>
+                @foreach($sale->payments as $payment)
+                    <tr><th>{{ ucfirst(str_replace('_', ' ', $payment->method)) }}:</th><td>{{ number_format($payment->amount, 2) }}</td></tr>
+                @endforeach
                 <tr><th>{{ __('pos.paid_amount') }}:</th><td>{{ number_format($sale->paid_amount, 2) }}</td></tr>
                 <tr><th>{{ __('pos.change') }}:</th><td>{{ number_format($sale->change_amount, 2) }}</td></tr>
             </table>
@@ -174,6 +215,9 @@
     <div class="thermal-row"><span>{{ __('pos.date') }}</span><span>{{ $sale->sold_at?->format('Y-m-d H:i') }}</span></div>
     <div class="thermal-row"><span>{{ __('pos.customer') }}</span><span>{{ $sale->customer?->name ?? __('pos.walk_in_customer') }}</span></div>
     <div class="thermal-row"><span>{{ __('pos.payment_method') }}</span><span>{{ ucfirst(str_replace('_', ' ', $sale->payment_method)) }}</span></div>
+    @foreach($sale->payments as $payment)
+        <div class="thermal-row"><span>{{ ucfirst(str_replace('_', ' ', $payment->method)) }}</span><span>{{ number_format($payment->amount, 2) }}</span></div>
+    @endforeach
     <hr class="thermal-line">
     @foreach($sale->items as $item)
         <div style="margin-bottom:4px;">
@@ -182,11 +226,17 @@
                 <span>{{ $item->quantity }} × {{ number_format($item->unit_price, 2) }}</span>
                 <span>{{ number_format($item->line_total, 2) }}</span>
             </div>
+            @if((float) $item->discount_amount > 0)
+                <div class="thermal-row" style="font-size:10px;">
+                    <span>{{ __('pos.item_discount') }}@if((float) $item->discount_percent > 0) ({{ number_format($item->discount_percent, 2) }}%)@endif</span>
+                    <span>-{{ number_format($item->discount_amount, 2) }}</span>
+                </div>
+            @endif
         </div>
     @endforeach
     <hr class="thermal-line">
     <div class="thermal-row"><span>{{ __('pos.subtotal') }}</span><span>{{ number_format($sale->subtotal, 2) }}</span></div>
-    <div class="thermal-row"><span>{{ __('pos.discount') }}</span><span>{{ number_format($sale->discount, 2) }}</span></div>
+    <div class="thermal-row"><span>{{ __('pos.cart_discount') }}</span><span>{{ number_format($sale->discount, 2) }}</span></div>
     <div class="thermal-row"><span>{{ __('pos.tax') }}</span><span>{{ number_format($sale->tax, 2) }}</span></div>
     <div class="thermal-row" style="font-weight:bold;"><span>{{ __('pos.total') }}</span><span>{{ number_format($sale->total, 2) }}</span></div>
     <div class="thermal-row"><span>{{ __('pos.paid_amount') }}</span><span>{{ number_format($sale->paid_amount, 2) }}</span></div>

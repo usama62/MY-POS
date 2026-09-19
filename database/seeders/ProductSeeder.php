@@ -3,9 +3,12 @@
 namespace Database\Seeders;
 
 use App\Models\Product;
+use App\Models\ProductBatch;
+use App\Models\ProductUom;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 class ProductSeeder extends Seeder
@@ -13,8 +16,11 @@ class ProductSeeder extends Seeder
     public function run(): void
     {
         Schema::disableForeignKeyConstraints();
+        DB::table('sale_item_batches')->delete();
         SaleItem::query()->delete();
         Sale::query()->delete();
+        ProductBatch::query()->delete();
+        ProductUom::query()->delete();
         Product::query()->delete();
         Schema::enableForeignKeyConstraints();
 
@@ -127,6 +133,9 @@ class ProductSeeder extends Seeder
                 'sku' => $sku,
                 'price' => $price,
                 'stock' => $stock,
+                'min_stock' => max(5, (int) floor($stock * 0.15)),
+                'max_stock' => max(30, $stock + max(20, (int) floor($stock * 0.5))),
+                'reorder_enabled' => true,
                 'category' => $category,
                 'is_active' => true,
                 'created_at' => $now,

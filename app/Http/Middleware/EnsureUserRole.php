@@ -9,8 +9,6 @@ use Symfony\Component\HttpFoundation\Response;
 class EnsureUserRole
 {
     /**
-     * Handle an incoming request.
-     *
      * @param  Closure(Request): (Response)  $next
      */
     public function handle(Request $request, Closure $next, string ...$roles): Response
@@ -18,11 +16,21 @@ class EnsureUserRole
         $user = $request->user();
 
         if ($user === null) {
-            abort(401, 'Unauthenticated.');
+            if ($request->expectsJson()) {
+                abort(401, 'Unauthenticated.');
+            }
+
+            return redirect()->guest(route('login'));
         }
 
-        if (!in_array($user->role, $roles, true)) {
-            abort(403, 'Forbidden.');
+        if ($roles !== [] && ! in_array($user->role, $roles, true)) {
+            if ($request->expectsJson()) {
+                abort(403, 'Forbidden.');
+            }
+
+            return redirect()
+                ->route($user->isAdmin() ? 'dashboard' : 'sales.create')
+                ->withErrors(['access' => __('pos.access_denied')]);
         }
 
         return $next($request);

@@ -44,7 +44,7 @@
         @csrf
         <div class="card-body">
             <div class="row">
-                <div class="col-md-6">
+                <div class="col-md-12">
                     <div class="form-group">
                         <label>{{ __('pos.customer') }}</label>
                         <select name="customer_id" class="form-control @error('customer_id') is-invalid @enderror">
@@ -54,17 +54,6 @@
                             @endforeach
                         </select>
                         @error('customer_id')<span class="invalid-feedback d-block">{{ $message }}</span>@enderror
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label>{{ __('pos.payment_method') }} <span class="text-danger">*</span></label>
-                        <select name="payment_method" class="form-control @error('payment_method') is-invalid @enderror" required>
-                            <option value="cash" @selected(old('payment_method', 'cash') === 'cash')>Cash</option>
-                            <option value="card" @selected(old('payment_method') === 'card')>Card</option>
-                            <option value="bank_transfer" @selected(old('payment_method') === 'bank_transfer')>Bank Transfer</option>
-                        </select>
-                        @error('payment_method')<span class="invalid-feedback d-block">{{ $message }}</span>@enderror
                     </div>
                 </div>
             </div>
@@ -91,6 +80,8 @@
                 </div>
                 <div id="product-search-results" class="product-search-results" role="listbox"></div>
                 <small class="text-muted d-block mt-1">{{ __('pos.search_product_hint') }}</small>
+                <small class="text-info d-block"><i class="fas fa-clock"></i> {{ __('pos.fefo_enabled_hint') }}</small>
+                <small class="text-info d-block"><i class="fas fa-balance-scale"></i> {{ __('pos.uom_enabled_hint') }}</small>
                 <div id="scan-feedback" class="small mt-1" aria-live="polite"></div>
             </div>
 
@@ -99,43 +90,61 @@
                     <thead>
                         <tr>
                             <th>{{ __('pos.product') }}</th>
-                            <th style="width:110px">{{ __('pos.quantity') }}</th>
-                            <th style="width:110px">{{ __('pos.price') }}</th>
-                            <th style="width:110px">{{ __('pos.total') }}</th>
-                            <th style="width:90px" class="text-center">{{ __('pos.actions') }}</th>
+                            <th style="width:120px">{{ __('pos.uom') }}</th>
+                            <th style="width:80px">{{ __('pos.quantity') }}</th>
+                            <th style="width:90px">{{ __('pos.price') }}</th>
+                            <th style="width:100px">{{ __('pos.item_discount') }}</th>
+                            <th style="width:80px">{{ __('pos.discount_percent_short') }}</th>
+                            <th style="width:100px">{{ __('pos.total') }}</th>
+                            <th style="width:70px" class="text-center">{{ __('pos.actions') }}</th>
                         </tr>
                     </thead>
                     <tbody id="cart-rows">
                         <tr id="cart-empty-row">
-                            <td colspan="5" class="text-center text-muted py-3">{{ __('pos.cart_empty') }}</td>
+                            <td colspan="8" class="text-center text-muted py-3">{{ __('pos.cart_empty') }}</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
 
             <div class="row">
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <div class="form-group">
-                        <label>{{ __('pos.discount') }}</label>
+                        <label>{{ __('pos.cart_discount') }}</label>
                         <input type="number" step="0.01" min="0" name="discount" value="{{ old('discount', '0') }}" class="form-control @error('discount') is-invalid @enderror" id="discount-input">
                         @error('discount')<span class="invalid-feedback d-block">{{ $message }}</span>@enderror
                     </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <div class="form-group">
                         <label>{{ __('pos.tax') }}</label>
                         <input type="number" step="0.01" min="0" name="tax" value="{{ old('tax', '0') }}" class="form-control @error('tax') is-invalid @enderror" id="tax-input">
                         @error('tax')<span class="invalid-feedback d-block">{{ $message }}</span>@enderror
                     </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-2">
                     <div class="form-group">
-                        <label>{{ __('pos.paid_amount') }} <span class="text-danger">*</span></label>
-                        <input type="number" step="0.01" min="0" name="paid_amount" value="{{ old('paid_amount', '0') }}" class="form-control @error('paid_amount') is-invalid @enderror" id="paid-input" required inputmode="decimal">
-                        @error('paid_amount')<span class="invalid-feedback d-block">{{ $message }}</span>@enderror
+                        <label>{{ __('pos.cash_amount') }}</label>
+                        <input type="number" step="0.01" min="0" name="cash_amount" value="{{ old('cash_amount', '0') }}" class="form-control @error('cash_amount') is-invalid @enderror" id="cash-input" inputmode="decimal">
+                        @error('cash_amount')<span class="invalid-feedback d-block">{{ $message }}</span>@enderror
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label>{{ __('pos.card_amount') }}</label>
+                        <input type="number" step="0.01" min="0" name="card_amount" value="{{ old('card_amount', '0') }}" class="form-control @error('card_amount') is-invalid @enderror" id="card-input" inputmode="decimal">
+                        @error('card_amount')<span class="invalid-feedback d-block">{{ $message }}</span>@enderror
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label>{{ __('pos.bank_transfer_amount') }}</label>
+                        <input type="number" step="0.01" min="0" name="bank_transfer_amount" value="{{ old('bank_transfer_amount', '0') }}" class="form-control @error('bank_transfer_amount') is-invalid @enderror" id="bank-input" inputmode="decimal">
+                        @error('bank_transfer_amount')<span class="invalid-feedback d-block">{{ $message }}</span>@enderror
                     </div>
                 </div>
             </div>
+            <p class="text-muted small mb-3">{{ __('pos.split_payment_hint') }}</p>
 
             <div class="row">
                 <div class="col-md-3"><div class="small-box bg-info"><div class="inner"><h4 id="preview-subtotal">0.00</h4><p>{{ __('pos.subtotal') }}</p></div></div></div>
@@ -152,20 +161,9 @@
 @endsection
 
 @section('scripts')
-@php
-    $productsForJs = $products->map(function ($p) {
-        return [
-            'id' => $p->id,
-            'name' => $p->name,
-            'sku' => $p->sku,
-            'price' => (float) $p->price,
-            'stock' => (int) $p->stock,
-        ];
-    })->values();
-@endphp
 <script>
     (function () {
-        const products = @json($productsForJs);
+        const products = @json($products);
 
         const form = document.getElementById('sale-form');
         const cartRows = document.getElementById('cart-rows');
@@ -175,7 +173,10 @@
         const scanFeedback = document.getElementById('scan-feedback');
         const discountInput = document.getElementById('discount-input');
         const taxInput = document.getElementById('tax-input');
-        const paidInput = document.getElementById('paid-input');
+        const cashInput = document.getElementById('cash-input');
+        const cardInput = document.getElementById('card-input');
+        const bankInput = document.getElementById('bank-input');
+        let autoFillCash = true;
 
         let rowIndex = 0;
         let activeResultIndex = -1;
@@ -191,6 +192,87 @@
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#39;');
 
+        const buildFefoPlan = (product, baseQty) => {
+            const need = Math.max(1, parseInt(baseQty, 10) || 1);
+            const batches = Array.isArray(product.batches) ? product.batches : [];
+            let remaining = need;
+            const plan = [];
+
+            for (const batch of batches) {
+                if (remaining <= 0) break;
+                const available = Number(batch.quantity) || 0;
+                const take = Math.min(remaining, available);
+                if (take < 1) continue;
+                plan.push({
+                    batch_no: batch.batch_no,
+                    expiry_date: batch.expiry_date,
+                    quantity: take,
+                    days_left: batch.days_left,
+                });
+                remaining -= take;
+            }
+
+            return plan;
+        };
+
+        const getSelectedUom = (row, product) => {
+            const uomId = parseInt(row.querySelector('.item-uom')?.value || '0', 10);
+            const uoms = Array.isArray(product.uoms) ? product.uoms : [];
+            return uoms.find((u) => Number(u.id) === uomId) || uoms[0] || {
+                id: 0,
+                name: 'Unit',
+                factor_to_base: 1,
+                price: Number(product.price) || 0,
+                max_qty: Number(product.stock) || 0,
+            };
+        };
+
+        const refreshRowPricing = (row, product) => {
+            const uom = getSelectedUom(row, product);
+            const qtyInput = row.querySelector('.item-qty');
+            const priceCell = row.querySelector('.item-unit-price');
+            const maxQty = Math.max(0, Number(uom.max_qty) || 0);
+            const factor = Math.max(1, Number(uom.factor_to_base) || 1);
+
+            row.dataset.price = String(uom.price);
+            row.dataset.factor = String(factor);
+            if (priceCell) priceCell.textContent = formatMoney(uom.price);
+
+            if (qtyInput) {
+                qtyInput.max = String(maxQty || 1);
+                let qty = parseInt(qtyInput.value || '1', 10);
+                if (qty > maxQty && maxQty > 0) {
+                    qty = maxQty;
+                    qtyInput.value = String(qty);
+                }
+                refreshFefoHint(row, product, qty * factor);
+            }
+        };
+
+        const formatFefoHint = (plan) => {
+            if (!plan.length) {
+                return @json(__('pos.fefo_no_batches'));
+            }
+
+            return @json(__('pos.fefo_pick')) + ': ' + plan.map((row) => {
+                const urgent = Number(row.days_left) <= 30 ? ' ⚠' : '';
+                return `${row.batch_no} (exp ${row.expiry_date}) ×${row.quantity}${urgent}`;
+            }).join(' → ');
+        };
+
+        const refreshFefoHint = (row, product, baseQty = null) => {
+            const hint = row.querySelector('.fefo-hint');
+            if (!hint || !product) return;
+            const uom = getSelectedUom(row, product);
+            const qty = parseInt(row.querySelector('.item-qty')?.value || '1', 10);
+            const factor = Math.max(1, Number(uom.factor_to_base) || 1);
+            const needBase = baseQty ?? (qty * factor);
+            const plan = buildFefoPlan(product, needBase);
+            const uomNote = `${qty} ${uom.name} = ${needBase} base`;
+            hint.textContent = `${uomNote} · ${formatFefoHint(plan)}`;
+            hint.classList.toggle('text-danger', plan.some((p) => Number(p.days_left) < 0));
+            hint.classList.toggle('text-warning', !plan.some((p) => Number(p.days_left) < 0) && plan.some((p) => Number(p.days_left) <= 30));
+        };
         let audioCtx = null;
 
         const ensureAudio = () => {
@@ -259,68 +341,138 @@
             cartRows.querySelectorAll('.cart-row').forEach((row) => {
                 const price = parseFloat(row.dataset.price || '0');
                 const qty = parseFloat(row.querySelector('.item-qty')?.value || '0');
-                const lineTotal = price * qty;
+                const gross = price * qty;
+                const percent = Math.max(0, Math.min(100, parseFloat(row.querySelector('.item-discount-percent')?.value || '0')));
+                let disc = Math.max(0, parseFloat(row.querySelector('.item-discount-amount')?.value || '0'));
+                if (percent > 0) {
+                    disc = Math.round((gross * (percent / 100)) * 100) / 100;
+                    const amtInput = row.querySelector('.item-discount-amount');
+                    if (amtInput && document.activeElement !== amtInput) {
+                        amtInput.value = formatMoney(disc);
+                    }
+                }
+                disc = Math.min(disc, gross);
+                const lineTotal = Math.max(0, gross - disc);
                 subtotal += lineTotal;
                 row.querySelector('.item-line-total').textContent = formatMoney(lineTotal);
             });
 
             const discount = parseFloat(discountInput.value || '0');
             const tax = parseFloat(taxInput.value || '0');
-            const paid = parseFloat(paidInput.value || '0');
             const total = Math.max(0, subtotal - discount + tax);
+            const card = Math.max(0, parseFloat(cardInput.value || '0'));
+            const bank = Math.max(0, parseFloat(bankInput.value || '0'));
+            const nonCash = card + bank;
+
+            if (autoFillCash && document.activeElement !== cashInput) {
+                cashInput.value = formatMoney(Math.max(0, total - nonCash));
+            }
+
+            const cash = Math.max(0, parseFloat(cashInput.value || '0'));
+            const paid = cash + nonCash;
+            const dueFromCash = Math.max(0, total - nonCash);
+            const change = Math.max(0, cash - dueFromCash);
 
             document.getElementById('preview-subtotal').textContent = formatMoney(subtotal);
             document.getElementById('preview-total').textContent = formatMoney(total);
             document.getElementById('preview-paid').textContent = formatMoney(paid);
-            document.getElementById('preview-change').textContent = formatMoney(paid - total);
+            document.getElementById('preview-change').textContent = formatMoney(change);
         };
 
-        const findCartRow = (productId) =>
-            cartRows.querySelector(`.cart-row[data-product-id="${productId}"]`);
+        const findCartRow = (productId, uomId) =>
+            cartRows.querySelector(`.cart-row[data-product-id="${productId}"][data-uom-id="${uomId}"]`);
 
-        const addProductToCart = (product) => {
+        const addProductToCart = (product, preferredUomId = null) => {
             if (!product) return;
 
-            const existing = findCartRow(product.id);
+            const uoms = Array.isArray(product.uoms) && product.uoms.length
+                ? product.uoms
+                : [{ id: 0, name: 'Unit', factor_to_base: 1, price: Number(product.price) || 0, max_qty: Number(product.stock) || 0, is_base: true }];
+
+            const defaultUom = uoms.find((u) => u.is_base) || uoms[0];
+            const startUom = preferredUomId
+                ? (uoms.find((u) => Number(u.id) === Number(preferredUomId)) || defaultUom)
+                : defaultUom;
+
+            if ((Number(startUom.max_qty) || 0) < 1 && (Number(product.stock) || 0) < 1) {
+                alert('Not enough stock for ' + product.name);
+                return;
+            }
+
+            const existing = findCartRow(product.id, startUom.id);
             if (existing) {
                 const qtyInput = existing.querySelector('.item-qty');
+                const uom = getSelectedUom(existing, product);
                 const nextQty = parseInt(qtyInput.value || '1', 10) + 1;
-                if (nextQty > product.stock) {
-                    alert('Not enough stock for ' + product.name);
+                if (nextQty > (Number(uom.max_qty) || 0)) {
+                    alert('Not enough stock for ' + product.name + ' in ' + uom.name);
                     return;
                 }
                 qtyInput.value = String(nextQty);
+                refreshRowPricing(existing, product);
                 playBeep();
                 recalc();
                 return;
             }
 
-            if (product.stock < 1) {
-                alert('Not enough stock for ' + product.name);
-                return;
-            }
+            const uomOptions = uoms.map((u) =>
+                `<option value="${Number(u.id)}" data-price="${Number(u.price)}" data-factor="${Number(u.factor_to_base)}" data-max="${Number(u.max_qty)}" ${Number(u.id) === Number(startUom.id) ? 'selected' : ''}>${escapeHtml(u.name)} (${Number(u.factor_to_base)})</option>`
+            ).join('');
 
             const tr = document.createElement('tr');
             tr.className = 'cart-row';
             tr.dataset.productId = String(product.id);
-            tr.dataset.price = String(product.price);
+            tr.dataset.uomId = String(startUom.id);
+            tr.dataset.price = String(startUom.price);
+            tr.dataset.factor = String(startUom.factor_to_base);
             tr.innerHTML = `
                 <td>
                     <strong>${escapeHtml(product.name)}</strong><br>
                     <small class="text-muted">${escapeHtml(product.sku)}</small>
+                    <div class="small fefo-hint text-info mt-1"></div>
                     <input type="hidden" name="items[${rowIndex}][product_id]" value="${Number(product.id)}">
                 </td>
                 <td>
-                    <input type="number" min="1" max="${Number(product.stock)}" step="1" name="items[${rowIndex}][quantity]" value="1" class="form-control item-qty">
+                    <select name="items[${rowIndex}][product_uom_id]" class="form-control form-control-sm item-uom">
+                        ${uomOptions}
+                    </select>
                 </td>
-                <td>${formatMoney(product.price)}</td>
-                <td class="item-line-total">${formatMoney(product.price)}</td>
+                <td>
+                    <input type="number" min="1" max="${Number(startUom.max_qty) || 1}" step="1" name="items[${rowIndex}][quantity]" value="1" class="form-control form-control-sm item-qty">
+                </td>
+                <td class="item-unit-price">${formatMoney(startUom.price)}</td>
+                <td>
+                    <input type="number" min="0" step="0.01" name="items[${rowIndex}][discount_amount]" value="0" class="form-control form-control-sm item-discount-amount" inputmode="decimal">
+                </td>
+                <td>
+                    <input type="number" min="0" max="100" step="0.01" name="items[${rowIndex}][discount_percent]" value="0" class="form-control form-control-sm item-discount-percent" inputmode="decimal">
+                </td>
+                <td class="item-line-total">${formatMoney(startUom.price)}</td>
                 <td class="text-center">
                     <button type="button" class="btn btn-sm btn-danger remove-row"><i class="fas fa-trash"></i></button>
                 </td>
             `;
 
-            tr.querySelector('.item-qty').addEventListener('input', recalc);
+            const qtyInput = tr.querySelector('.item-qty');
+            const uomSelect = tr.querySelector('.item-uom');
+            const discAmt = tr.querySelector('.item-discount-amount');
+            const discPct = tr.querySelector('.item-discount-percent');
+
+            qtyInput.addEventListener('input', () => {
+                refreshRowPricing(tr, product);
+                recalc();
+            });
+            uomSelect.addEventListener('change', () => {
+                tr.dataset.uomId = uomSelect.value;
+                const uom = getSelectedUom(tr, product);
+                qtyInput.value = '1';
+                refreshRowPricing(tr, product);
+                if ((Number(uom.max_qty) || 0) < 1) {
+                    alert('Not enough stock for ' + product.name + ' in ' + uom.name);
+                }
+                recalc();
+            });
+            [discAmt, discPct].forEach((el) => el.addEventListener('input', recalc));
             tr.querySelector('.remove-row').addEventListener('click', () => {
                 tr.remove();
                 updateEmptyState();
@@ -328,6 +480,7 @@
             });
 
             cartRows.appendChild(tr);
+            refreshRowPricing(tr, product);
             rowIndex += 1;
             updateEmptyState();
             playBeep();
@@ -359,7 +512,7 @@
             resultsBox.innerHTML = list.map((p, i) => `
                 <div class="product-search-item ${i === 0 ? 'active' : ''}" data-index="${i}" role="option">
                     <span>${escapeHtml(p.name)} <small>(${escapeHtml(p.sku)})</small></span>
-                    <span class="meta">${formatMoney(p.price)} · stock ${Number(p.stock)}</span>
+                    <span class="meta">${formatMoney(p.price)} · stock ${Number(p.stock)}${p.fefo_hint ? ` · FEFO ${escapeHtml(p.fefo_hint.batch_no)}` : ''}</span>
                 </div>
             `).join('');
 
@@ -515,7 +668,14 @@
             setTimeout(hideResults, 150);
         });
 
-        [discountInput, taxInput, paidInput].forEach((el) => el.addEventListener('input', recalc));
+        [discountInput, taxInput, cardInput, bankInput].forEach((el) => el.addEventListener('input', () => {
+            autoFillCash = true;
+            recalc();
+        }));
+        cashInput.addEventListener('input', () => {
+            autoFillCash = false;
+            recalc();
+        });
         updateEmptyState();
         recalc();
     })();

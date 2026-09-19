@@ -19,7 +19,7 @@
     </div>
 
     <div class="row">
-        <div class="col-lg-4 col-12">
+        <div class="col-lg-3 col-6">
             <div class="small-box bg-info">
                 <div class="inner">
                     <h3>{{ number_format($todaySales, 2) }}</h3>
@@ -28,7 +28,7 @@
                 <div class="icon"><i class="fas fa-dollar-sign"></i></div>
             </div>
         </div>
-        <div class="col-lg-4 col-12">
+        <div class="col-lg-3 col-6">
             <div class="small-box bg-success">
                 <div class="inner">
                     <h3>{{ $totalProducts }}</h3>
@@ -37,13 +37,24 @@
                 <div class="icon"><i class="fas fa-boxes"></i></div>
             </div>
         </div>
-        <div class="col-lg-4 col-12">
+        <div class="col-lg-3 col-6">
             <div class="small-box bg-warning">
                 <div class="inner">
                     <h3>{{ $lowStock }}</h3>
                     <p>{{ __('pos.low_stock_items') }}</p>
                 </div>
                 <div class="icon"><i class="fas fa-exclamation-triangle"></i></div>
+                <a href="{{ route('purchase-orders.index') }}" class="small-box-footer">{{ __('pos.purchase_orders') }} <i class="fas fa-arrow-circle-right"></i></a>
+            </div>
+        </div>
+        <div class="col-lg-3 col-6">
+            <div class="small-box bg-danger">
+                <div class="inner">
+                    <h3>{{ $draftPoCount ?? 0 }}</h3>
+                    <p>{{ __('pos.po_drafts') }}</p>
+                </div>
+                <div class="icon"><i class="fas fa-file-alt"></i></div>
+                <a href="{{ route('purchase-orders.index', ['status' => 'draft']) }}" class="small-box-footer">{{ __('pos.view') }} <i class="fas fa-arrow-circle-right"></i></a>
             </div>
         </div>
     </div>

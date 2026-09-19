@@ -43,4 +43,26 @@ class Sale extends Model
     {
         return $this->hasMany(SaleItem::class);
     }
+
+    public function payments(): HasMany
+    {
+        return $this->hasMany(SalePayment::class);
+    }
+
+    public function paymentLabel(): string
+    {
+        $payments = $this->relationLoaded('payments')
+            ? $this->payments->where('amount', '>', 0)
+            : $this->payments()->where('amount', '>', 0)->get();
+
+        if ($payments->isEmpty()) {
+            return (string) $this->payment_method;
+        }
+
+        if ($payments->count() === 1) {
+            return (string) $payments->first()->method;
+        }
+
+        return 'mixed';
+    }
 }

@@ -52,4 +52,9 @@ class User extends Authenticatable
     {
         return $this->role === 'admin';
     }
+
+    public function isCashier(): bool
+    {
+        return $this->role === 'cashier';
+    }
 }

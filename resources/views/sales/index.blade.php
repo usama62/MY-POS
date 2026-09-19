@@ -108,7 +108,7 @@
                     <td><a href="{{ route('sales.show', $sale) }}">{{ $sale->reference }}</a></td>
                     <td>{{ $sale->customer?->name ?? __('pos.walk_in_customer') }}</td>
                     <td>{{ number_format($sale->total, 2) }}</td>
-                    <td>{{ $sale->payment_method }}</td>
+                    <td>{{ ucfirst(str_replace('_', ' ', $sale->payment_method)) }}</td>
                     <td>{{ $sale->sold_at?->format('Y-m-d H:i') }}</td>
                     <td class="no-print">
                         <a href="{{ route('sales.show', $sale) }}" class="btn btn-xs btn-info">{{ __('pos.view') }}</a>

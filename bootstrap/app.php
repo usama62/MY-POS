@@ -16,6 +16,13 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\SetLocale::class,
         ]);
 
+        $middleware->redirectGuestsTo(fn () => route('login'));
+        $middleware->redirectUsersTo(function () {
+            $user = auth()->user();
+
+            return ($user && $user->isAdmin()) ? route('dashboard') : route('sales.create');
+        });
+
         $middleware->alias([
             'role' => \App\Http\Middleware\EnsureUserRole::class,
         ]);

@@ -37,7 +37,8 @@ class DashboardController extends Controller
 
         $todaySales = Sale::query()->whereDate('sold_at', today())->sum('total');
         $totalProducts = Product::query()->count();
-        $lowStock = Product::query()->where('stock', '<=', 5)->count();
+        $lowStock = Product::query()->whereColumn('stock', '<=', 'min_stock')->count();
+        $draftPoCount = \App\Models\PurchaseOrder::query()->where('status', 'draft')->count();
         $recentSales = Sale::query()->latest('sold_at')->limit(10)->get();
         $monthlySales = (clone $salesInRange)
             ->selectRaw('DATE_FORMAT(sold_at, "%Y-%m-%d") as day_key, SUM(total) as total_amount')
@@ -54,6 +55,7 @@ class DashboardController extends Controller
             'todaySales',
             'totalProducts',
             'lowStock',
+            'draftPoCount',
             'recentSales',
             'chartLabels',
             'chartData',

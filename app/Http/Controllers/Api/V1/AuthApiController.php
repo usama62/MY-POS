@@ -20,11 +20,17 @@ class AuthApiController extends Controller
             'role' => ['nullable', 'in:admin,cashier'],
         ]);
 
+        // Public/self registration always creates cashiers; only admins can set admin.
+        $role = 'cashier';
+        if ($request->user()?->isAdmin() && ! empty($validated['role'])) {
+            $role = $validated['role'];
+        }
+
         $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => $validated['password'],
-            'role' => $validated['role'] ?? 'cashier',
+            'role' => $role,
         ]);
 
         $token = $user->createToken('api-token')->plainTextToken;
